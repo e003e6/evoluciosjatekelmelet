@@ -1,0 +1,1 @@
+cmodul.cpython-310-darwin.so fájl helye
