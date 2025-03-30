@@ -1,7 +1,7 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
-#include<time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <time.h>
 
 // MODE=1 (shared norm, public reputation)
 // UPDATE_MODE=2
@@ -13,7 +13,7 @@
 
 const int N = 100;             // 100 darab ágens játszik
 const int GENERATION = 1000;   // 1000 generáción át tart a szimuláció
-const int ROUND = 10;          // minden ge
+const int ROUND = 10;          // 10 játékkör
 
 // public norm (0=good, 1=bad)
 const int PUBLIC_NORM_CG = 0;
@@ -222,7 +222,7 @@ int main(void) {
 			if (a==1 && j==1) public_norm[a][j] = PUBLIC_NORM_DB;
 			if (a==2 && j==0) public_norm[a][j] = PUBLIC_NORM_PG;
 			if (a==2 && j==1) public_norm[a][j] = PUBLIC_NORM_PB;
-		} 
+		}
 	}
 	
 	// véletlenszerűen kiosztom a kezdeti hírnevet
@@ -247,7 +247,7 @@ int main(void) {
    		}
 
    		// minden generáció elején kiirom a generáció számát és a frekvenciát
-		if (steps%N==0) { 
+		if (steps%N==0) { 	// MINDEN EGÉSZ GENERÁCIÓBAN 1000x
 			
 			printf("gen = %4d |", steps/N);
 
@@ -259,7 +259,7 @@ int main(void) {
 		} 
 		
 		// minden generáció elején lenullázom a számlálókat
-		if (steps%N==0) {  
+		if (steps%N==0) {  	// MINDEN EGÉSZ GENERÁCIÓBAN 1000x
 			times_of_cooperation = 0;
 			average_payoff = 0.0;
 		}
@@ -320,7 +320,6 @@ int main(void) {
 					case 2: payoff[donor[pair]] -= ALPHA; payoff[recipient[pair]] -= BETA; break;
 				}
 
-
 				// ******** start of updating reputation ********
 				// a játék után firssül a donor hírneve
 
@@ -343,17 +342,16 @@ int main(void) {
 		}
 
 
-
 		// reproduction
 
+		// ------ Moran process (UPDATE_MODE==2) ------
+		
 		minimum_to_zero(payoff);
 		payoff_to_cdf(payoff);
 
-
-		// ------ Moran process (UPDATE_MODE==2) ------
-
 		// chosing a dying individual (n)
 		n = rand()%N;
+		printf("haldoklo egyedn: %d \n", n);
 
 		// choosing a parent proportionally to payoff (reproduce)
 		rd_double = (double) rand()/RAND_MAX;   // (p=0-1)

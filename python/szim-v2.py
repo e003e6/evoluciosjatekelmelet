@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 '''
 shared norm, public reputation
@@ -9,30 +10,31 @@ class Szimulacio:
 
     def __init__(self, tn, n=100, generations=1000, rounds=10, fr=(0.8, 'CD'), init_good=0.5,
                  mu=0.02, epsilon=0.01, e_rep=0, e_act=0, c=3, b=9, alpha=1, beta=4):
-        self.stats = []
-        self.generations = generations
 
-        self._run(tn, n, generations, rounds, fr, init_good, mu, epsilon, e_rep, e_act, c, b, alpha, beta)
+        # társadalmi vélemény mátrix beállítása (listából np mátrix)
+        public_norm = np.array([self.r_to_num(t) for t in tn], dtype=np.uint8).reshape(3, 2)
+
+        self.statisztikak = []
+        self.values = [public_norm, n, generations, rounds, fr, init_good, mu, epsilon, e_rep, e_act, c, b, alpha, beta]
 
 
-    def _run(self, tn, n, generations, rounds, fr, init_good, mu, epsilon, e_rep, e_act, c, b, alpha, beta):
+    def run(self):
+
+        # változók kicsomagolása
+        public_norm, n, generations, rounds, fr, init_good, mu, epsilon, e_rep, e_act, c, b, alpha, beta = self.values
 
         # kezdeti frekvencia beállítása
-        strategy = np.zeros((n, 2), dtype=np.uint8)
-        for i in range(n):
-            if i<n*fr[0]:
-                strategy[i, 0] = self.s_to_num(fr[1][0])
-                strategy[i, 1] = self.s_to_num(fr[1][1])
-            else:
-                strategy[i, 0] = np.random.randint(0, 3)
-                strategy[i, 1] = np.random.randint(0, 3)
-
-        # társadalmi vélemény mátrix beállítása
-        public_norm = np.array([self.r_to_num(t) for t in tn], dtype=np.uint8).reshape(3, 2)
-        print(public_norm)
+        strategy = np.zeros((n, 2), dtype=np.uint8)  # len = N, [[0 1], [2 0] ...]
+        th = int(n * fr[0])
+        # megadott %-ú ágenshez beállítom a kezdetben többségi viselkedési szabályt
+        strategy[:th, 0] = self.s_to_num(fr[1][0])
+        strategy[:th, 1] = self.s_to_num(fr[1][1])
+        # maradék ágensek véletlenszerű cselekvési szabályt kapnak
+        strategy[th:, :] = np.random.randint(0, 3, size=(n - th, 2))
 
         # véletlenszerű kezdeti hírnevek
-        public_reputation = np.array([0 if (np.random.rand() > init_good) else 1 for n in range(n)], dtype=np.uint8)
+        public_reputation = (np.random.rand(n) <= init_good).astype(np.uint8)
+
 
         for gen in range(generations):
 
@@ -54,9 +56,8 @@ class Szimulacio:
                 # minden lépésben van x (ROUND) játék
                 for round in range(rounds):
 
-                    # minden játék kör elején véletlenszerűen párba állítom az ágenseket
-                    parok = np.arange(0, n, dtype=np.uint8); np.random.shuffle(parok)
-                    parok = parok[np.newaxis, :].reshape(int(n/2), 2)
+                    # minden játék kör elején véletlenszerűen párba állítom az ágenseket (vagyis az indexeket 0:n-ig)
+                    parok = np.random.permutation(n).reshape(-1, 2)
 
                     # minden egyes pár játszik egymással
                     for par in range(int(n/2)):
@@ -73,8 +74,7 @@ class Szimulacio:
                         # hiba a tervezett művelet végrehajtásában
                         if np.random.rand() < e_act: # ha VAN hiba
                             # one of the other two actions is taken randomly
-                            l = [0, 1, 2]; l.remove(donor_action)
-                            donor_action = np.random.choice(l)
+                            donor_action = np.random.choice(np.delete([0, 1, 2], donor_action))
 
                         if donor_action == 0:
                             times_of_cooperation += 1
@@ -104,33 +104,26 @@ class Szimulacio:
 
                 # Moran process
 
-                min_to_zero = payoff - min(payoff)
-                cdf = np.cumsum(min_to_zero/np.sum(min_to_zero))
-
-                # chosing a dying individual
+                # haldokló egyed véletlen kiválasztása
                 dying = np.random.randint(0, n)
 
-                # choosing a parent proportionally to payoff
-                r = np.random.rand()
-                szulo = 0
-                while r > cdf[szulo]:
-                    szulo += 1
+                # szülő kiválasztása payoff arányosan
+                min_to_zero = payoff - np.min(payoff)
+                cdf = np.cumsum(min_to_zero/np.sum(min_to_zero))
+                szulo = np.searchsorted(cdf, np.random.rand())
 
                 # mutáció
                 if np.random.rand() > epsilon:
                     strategy[dying] = strategy[szulo]
                 else:
-                    strategy[dying] = np.array([np.random.randint(0, 3), np.random.randint(0, 3)])
+                    strategy[dying] = np.random.randint(0, 3, size=2)
 
-                # assigning a new reputation to the new-born
-                if np.random.rand() < init_good:
-                    public_reputation[dying] = 0
-                else:
-                    public_reputation[dying] = 1
+                # új játékos reputációja
+                public_reputation[dying] = 0 if np.random.rand() < init_good else 1
 
             stat = (gen, freakvenciak, average_payoff/n, (times_of_cooperation/(rounds*n*n/2)))
             print(stat)
-            self.stats.append(stat)
+            self.statisztikak.append(stat)
 
 
     def s_to_num(self, s):
@@ -143,17 +136,37 @@ class Szimulacio:
                 return 2
 
     def r_to_num(self, r):
-        match r:
-            case 'G':
-                return 0
-            case 'B':
-                return 1
+        return 0 if r == 'G' else 1
 
+    def plot(self, rangee=(2.7, 3)):
+        cssz = ['CC', 'CD', 'CP', 'DC', 'DD', 'DP', 'PC', 'PD', 'PP']
+        szinek = ['#45258E', '#00B660', '#FAA100', '#E60090', '#00B8F5', '#CEE813', '#FD0000', '#596164', '#981018']
+        nlist = list(range(1, self.values[2] + 1))
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4), constrained_layout=True, dpi=300)
+
+        for i, cs in enumerate(cssz):
+            ax1.plot(nlist, [stat[1][cs] for stat in self.statisztikak], c=szinek[i], lw=0.8, label=cs)
+
+        ax2.plot(nlist, [stat[-2] for stat in self.statisztikak], c='red', lw=0.8)
+
+        # DESIGN
+        ax1.set_xlim((0, nlist[-1]))
+        ax1.set_ylim((0, 1))
+
+        ax2.set_xlim((0, nlist[-1]))
+        ax2.set_ylim((rangee[0], rangee[1]))
+
+        ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        plt.show()
 
 
 if __name__ == "__main__":
-    tn = ['G', 'G',
-          'B', 'B',
+
+    tn = ['G', 'B',
+          'B', 'G',
           'B', 'B']
 
     sz = Szimulacio(tn, generations=20)
+    sz.run()
+    sz.plot()

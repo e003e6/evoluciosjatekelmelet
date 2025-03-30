@@ -1,5 +1,7 @@
 import numpy as np
 
+# c-ben írt kódot előkészíti futásra
+
 '''
 shared norm, public reputation
 Moran process reputation
