@@ -24,6 +24,7 @@ class Szimulacio:
         public_norm, n, generations, rounds, fr, init_good, mu, epsilon, e_rep, e_act, c, b, alpha, beta = self.values
 
         # kezdeti frekvencia beállítása
+        # strategy változó N számú lista, ami tartalmazza minden ágens viselkedési szabályát ([0, 1] = CD)
         strategy = np.zeros((n, 2), dtype=np.uint8)  # len = N, [[0 1], [2 0] ...]
         th = int(n * fr[0])
         # megadott %-ú ágenshez beállítom a kezdetben többségi viselkedési szabályt

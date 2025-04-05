@@ -1,3 +1,13 @@
+## v2.1
+
+- Modell 1 átdolgozása: gyorsabb Python futás (csak Numpy és Matplotlib csomagok használatával)
+
+- Szimulációs leírás (lásd lentebb)
+
+----
+
+<br>
+
 # The basic model
 
 Van egy fix méretű populáció (N), ami játékosokból áll. 
@@ -6,7 +16,7 @@ Van egy fix méretű populáció (N), ami játékosokból áll.
 
 - Minden játékos a 9 lehetséges cselekvési szabály egyikét kapja (ez egy fix ágnes tulajonság).
 
-- Minden játékos ugyanazt a társadalmi normát vallja (ez egy fix populáció tulajdonság).
+- Minden játékos vall egy társadalmi normát (ez egy fix tulajdonság, ami vagy megegyezik a populáció összes tagjánál vagy minden ágens egyedi normát vall - a szimuláció módjától függően).
 
 ### A játékszabályok
 
@@ -20,9 +30,9 @@ A donornak három viselkedési, döntési lehetősége van:
 
 Mindenk játékos bináris hírnévvel rendelkezik: jó (G) vagy rossz (B).
 
-**A donor döntését a cselekévési szabálya határozza meg, a befogadó hírnevének függvényében!**
+**A donor döntését a cselekévési szabálya határozza meg, a recipiens hírnevének függvényében!**
 
-Minden interakció után a donor hírneve a populáció társadalmi normájának megfelelően frissül, a recipiens hírneve változatlan marad. 
+Minden interakció után a donor hírneve a populáció társadalmi normájának megfelelően frissül (a recipiens hírneve változatlan marad). 
 
 ### Action rules
 
@@ -52,19 +62,76 @@ Egy példa a társadalmi normára (xy norm):
 
 A horizontális tengely a recipiens hírnve, a vertikális tengely a donor cselekvése. A táblázat értékei a két változó alapján megadják a donor új hírnvét. 
 
-A jelenlegi társadalmi normában a recipiens hírnevétől független minden koperálást támagot és minden nem koperálást elitél a populáció.
+A jelenlegi társadalmi normában a recipiens hírnevétől független minden koperálást elismer és minden nem koperálást elitél a populáció.
 
 ### Egy generáció
 
-A generáció elnevezés kissé félrevezető, mivel a reprodukció nem a generáció végén történik meg. A generáció inkább csak egy mérféldkő, egy frekvencia, amivel szabályozzuk a szimuláció hosszát és ahol lekérjük az adatokat a szimulációból.
+A generáció elnevezés kissé félrevezető, mivel a reprodukció nem minden esetben a generáció végén történik meg. 
 
 Egy generáció pszeudó kódban:
 
 ```pseudo
 loop gen:
     - generáció számlálók nullázás
+    - egyedi kifizetések nullázása
     
-    loop step:
+    loop round:
+        - párba állítjuk a játékosokat
+
+        loop par:
+            - a pár játszik egymással
+            - frissül a donor hírneve
+
+    - reprodukció
+
+    - generáció értékeinek mentése
+```
+
+<br>
+
+## A modell három változata
+
+1. **shared norm, public reputation** (`MODE = 1`): a társadalmi norma és a reputáció is populáció tulajdonság. 
+
+2. **shared norm, privat reputation** (`MODE = 2`): a társadalmi norma populáció tulajdonság, de minden ágens saját vélemény listát tart fent a többi ágensről és a saját véleménye alapján cselekszik vele szemben a játék alatt. A játékot megfigyelő többi ágens a saját, privát véleménylistája alapján ítéli meg a játékosokat. 
+
+3. **privat norm, privat reputation** (`MODE = 3`): a társadalmi norma és a reputáció is privát ágens tulajdonság. Mindenki a saját normája alapján ítéli meg a játékosok cselekedetét, és a saját magának fenttartott véleméyn alapján cselekszik a többi játékossal szemben. (Itt persze felmerül az a logikai ellentmondás, hogy a játkos a saját cselekvési szabályát elitéli.)
+
+<br>
+
+### Reprodukció
+
+Az `UPDATE_MODE` határozza meg a populáció frissítésének (evolúciós dinamikájának) típusát. A két módszer:
+
+1. Wright–Fisher process (`UPDATE_MODE = 1`): **Egyszerre egy teljes generáció cserélődik ki**. Minden generáció elején minden játékos egyszerre "úszületik", azaz stratégiát kap egy szülőtől, akit a szaporodási sikerességük (payoff) alapján választanak ki.
+
+2. Moran process (`UPDATE_MODE = 2`): folyamatos, egyedi szintű szelekciós modell. **Egyetlen egyed frissül egy lépésben**. Tehát minden generációban `N` lépés van, minden egyes játékosra külön `total_steps = N*gen`. Minden lépésben egy véletlenszerű játékos "meghal", és helyére egy új kerül, akinek szülőjét a payoff alapján választjuk.
+
+#### Moran process
+
+A folyamat egyszerre mindig egyetlen egyedet cserél ki a populációban: egy egyed meghal, és a helyét egy új, szaporodással létrejövő egyed veszi át.
+
+Minden kieső játékosért egy új egyén lép be. Alap hírnévét aszerint kapja, hogy a jelenlegi populációban milyen arányban vannak jó és rossz játékosok. (Így a populáció mérete állandó marad.)
+
+A sikeresebb (nagyobb payoffal rendelkező) egyedek gyakrabban örökítik tovább a stratégiájukat, de ugyan akkora valószínűsggel halnak meg.
+
+1. **Egy haldokló egyed kiválasztása.** Véletlenszerűen kiválasztunk egy egyedet. Minden egyed halálozási esélye egyenlő.
+
+2. **Meghalt egyed pódlása.** Szülő egyed kiválasztása: a szülőt a játék körök alatt gyűjtött kifizetés (payoff) szerint választjuk ki. Véletlenszámmal választjuk ki a reprodukáló egyedet úgy, hogy a payoff  szerint súlyozott a választás. (A magasabb payoffú egyedek nagyobb valószínűséggel szaporodnak.)
+
+3. Az új egyed (aki átveszi a meghalt egyed helyét) örökli a reprodukáló szülő stratégiáját.
+
+4. De kis valószínűséggel mutáció (epsilon) következik be, ami a stratégiát véletlenszerűen újra állítja.
+
+5. Az újonnan született egyed véletlenszerű kezdeti reputációt kapnak.
+
+Generáció pszeudó kód Morgen process esetében:
+
+```pseudo
+loop gen:
+    - generáció számlálók nullázás
+    
+    loop step (N):
         - egyedi kifizetések nullázása
 
         loop round:
@@ -74,16 +141,77 @@ loop gen:
                 - a pár játszik egymással
                 - frissül a donor hírneve
 
-        - Moran process (reprodukció)
+        - Moran process (egy játákos reprodukciója)
 
     - generáció értékeinek mentése
 ```
 
-### Evolúció (Moran process)
+#### Wright–Fisher process
 
-A folyamat egyszerre mindig egyetlen egyedet cserél ki a populációban: egy egyed meghal, és a helyét egy új, szaporodással létrejövő egyed veszi át.
+...
 
-Minden kieső játékosért egy új egyén lép be. Alap hírnévét aszerint kapja, hogy a jelenlegi populációban milyen arányban vannak jó és rossz játékosok. (Így a populáció mérete állandó marad.)
+#### CDF payoff
+
+...
+
+
+
+
+
+## Mode2
+
+Minden játákos saját reputációt tart fen. Ez egy `[N][N]` elemű mátrix, ahol `reputation[m][n]` azt jelenti, hogy `m` indexű játékos mit gondol `n` indexű játákosról.
+
+### Kezdeti hírnév beállítás
+
+Az `INITIAL_CORRELATION` változó azt szabályozza, hogy az egyének kezdeti reputációja (jó vagy rossz) **mennyire egyezzen meg a populáció tagjai között**.
+
+- `INITIAL_CORRELATION = 0` : Minden játékos minden másik játékosról függetlenül vélekedik. Minden `reputation[m][n]` érték **önállóan véletlenszerűen** kerül beállításra a `INITIAL_GOOD` szerint.
+
+- `INITIAL_CORRELATION = 1`: Minden játékosról egységes vélemény alakul ki a játék kezdetén. Mindenki ugyanúgy látja `n` játékost, az `INITIAL_GOOD` alapján.
+
+
+
+### Communication round
+
+Azt a folyamatot modellezi, amikor a játékosok "beszélnek egymással"" és **megosztják a véleményüket** más játékosokról.
+
+Minden játékos privát reputációt tart fenn másokról. A kommunikációs körök során ezek a vélemények terjednek a játékosok között, azaz az egyik játékos átveszi a másik véleményét.
+
+A kommunikációra a lépések végén kerül sor.
+
+
+
+`COMMUNICATION`: hány kommunikációs interakció történjen egy játékosra vetítve minden egyes lépés során Minden játékos átlagosan `COMMUNICATION` alkalommal hall valamit egy másikról.
+
+- `l`: a hallgató (aki frissíti a véleményét)
+
+- `m`: az informátor (`l` azt gondolja, hogy megbízható vagy nem)
+
+- `n`: a témaszemély, akiről az információ szól
+
+
+
+`COM_MODE`: a kommunikáció milyen szabály alapján történik
+
+- `COM_MODE = 1`: Mindenkinek hiszünk: `l` kérdés nélkül átveszi `m` véleményét `n`-ről
+
+- `COM_MODE = 2`: Csak annak hiszünk, akit jónak tartunk. `l` játékos csak akkor veszi át `m` véleményét, ha őt jónak tartja (`reputation[l][m] == 0`).  Ez azt modellezi, hogy az emberek csak akkor fogadnak el információt másoktól, ha megbízhatónak tartják őket.
+  
+  
+
+```
+loop N*COMMUNICATION:
+    - l, m, n = rand
+
+    - COM_MODE
+```
+
+
+
+
+
+
 
 ## Python megvalósítás
 
@@ -97,7 +225,7 @@ def __init__(self, tn, n=100, generations=1000, rounds=10, fr=(0.8, 'CD'), init_
     ...
 ```
 
-- **tn:** társadalmi norma, egy listában megadott mátrixpython
+- **tn:** társadalmi norma, egy listában megadott mátrix
 
 ```python
 tn = ['G', 'G',
@@ -119,42 +247,6 @@ tn = ['G', 'G',
 
 - **c, b, alpha, beta:** kifizetési értékek
 
-
-
-
-
-
-
 - action a: 0=cooperation, 1=defection, 2=punishment
 
 - reputation j: 0=good, 1=bad
-
-
-
-
-
-### Moran process
-
-A sikeresebb (nagyobb payoffal rendelkező) egyedek gyakrabban örökítik tovább a stratégiájukat, de ugyan akkora valószínűsggel halnak meg.
-
-1. **Egy haldokló egyed kiválasztása.** Véletlenszerűen kiválasztunk egy egyedet. Minden egyed halálozási esélye egyenlő.
-
-2. **Meghalt egyed pódlása.** Szülő egyed kiválasztása: a szülőt a játék körök alatt gyűjtött kifizetés (payoff) szerint választjuk ki. Véletlenszámmal választjuk ki a reprodukáló egyedet úgy, hogy a payoff  szerint súlyozott a választás. (A magasabb payoffú egyedek nagyobb valószínűséggel szaporodnak.)
-
-3. Az új egyed (aki átveszi a meghalt egyed helyét) örökli a reprodukáló szülő stratégiáját.
-
-4. De kis valószínűséggel mutáció (epsilon) következik be, ami a stratégiát véletlenszerűen újra állítja.
-
-5. Az újonnan született egyed véletlenszerű kezdeti reputációt kapnak.
-
-
-
-#### CDF payoff
-
-
-
-
-
-
-
-
