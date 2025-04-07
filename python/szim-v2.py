@@ -170,4 +170,4 @@ if __name__ == "__main__":
 
     sz = Szimulacio(tn, generations=20)
     sz.run()
-    sz.plot()
+    #sz.plot()

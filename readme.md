@@ -154,23 +154,17 @@ loop gen:
 
 ...
 
-
-
-
-
 ## Mode2
 
 Minden játákos saját reputációt tart fen. Ez egy `[N][N]` elemű mátrix, ahol `reputation[m][n]` azt jelenti, hogy `m` indexű játékos mit gondol `n` indexű játákosról.
 
 ### Kezdeti hírnév beállítás
 
-Az `INITIAL_CORRELATION` változó azt szabályozza, hogy az egyének kezdeti reputációja (jó vagy rossz) **mennyire egyezzen meg a populáció tagjai között**.
+Az `INITIAL_CORRELATION` változó azt szabályozza, hogy az egyének kezdeti reputációja (jó vagy rossz) **megegyezzen-e a populáció tagjai között**.
 
 - `INITIAL_CORRELATION = 0` : Minden játékos minden másik játékosról függetlenül vélekedik. Minden `reputation[m][n]` érték **önállóan véletlenszerűen** kerül beállításra a `INITIAL_GOOD` szerint.
 
 - `INITIAL_CORRELATION = 1`: Minden játékosról egységes vélemény alakul ki a játék kezdetén. Mindenki ugyanúgy látja `n` játékost, az `INITIAL_GOOD` alapján.
-
-
 
 ### Communication round
 
@@ -180,8 +174,6 @@ Minden játékos privát reputációt tart fenn másokról. A kommunikációs k�
 
 A kommunikációra a lépések végén kerül sor.
 
-
-
 `COMMUNICATION`: hány kommunikációs interakció történjen egy játékosra vetítve minden egyes lépés során Minden játékos átlagosan `COMMUNICATION` alkalommal hall valamit egy másikról.
 
 - `l`: a hallgató (aki frissíti a véleményét)
@@ -190,15 +182,11 @@ A kommunikációra a lépések végén kerül sor.
 
 - `n`: a témaszemély, akiről az információ szól
 
-
-
 `COM_MODE`: a kommunikáció milyen szabály alapján történik
 
 - `COM_MODE = 1`: Mindenkinek hiszünk: `l` kérdés nélkül átveszi `m` véleményét `n`-ről
 
 - `COM_MODE = 2`: Csak annak hiszünk, akit jónak tartunk. `l` játékos csak akkor veszi át `m` véleményét, ha őt jónak tartja (`reputation[l][m] == 0`).  Ez azt modellezi, hogy az emberek csak akkor fogadnak el információt másoktól, ha megbízhatónak tartják őket.
-  
-  
 
 ```
 loop N*COMMUNICATION:
@@ -206,12 +194,6 @@ loop N*COMMUNICATION:
 
     - COM_MODE
 ```
-
-
-
-
-
-
 
 ## Python megvalósítás
 
@@ -250,3 +232,38 @@ tn = ['G', 'G',
 - action a: 0=cooperation, 1=defection, 2=punishment
 
 - reputation j: 0=good, 1=bad
+
+A megvalósított modellben nagy szerepet fordítunk a vektorosított megoldásoknak. 
+
+```python
+for agens in range(n):
+    rec_hirnev_f = reputation[agens][recipientidx]          # MODE2: rec hírneve a megfigyelő ágens szerint
+    uj_velemeny = public_norm[donor_action][rec_hirnev_f]   # a cselvés fix, de az alapján itélem meg, hogy milyennek gondolom a recipiens hírnevét
+
+        # de lehet, hogy hibásan
+        if np.random.rand() < mu: # ha VAN hiba
+            uj_velemeny = 0 if uj_velemeny == 1 else 1
+
+    reputation[agens][donor] = uj_velemeny
+```
+
+*(A minta kód `uj_velemeny` valtozója csak a könyebb érthetőség miatt létezik)*
+
+```python
+# minden ágens véleménye a recipiensről egy listába
+rec_hirnev = reputation[:, recipientidx]
+
+# az új donorról kialakított vélemény kiszámítása minden egyes ágens számára
+uj_velemenyek = public_norm[donor_action][rec_hirnev]
+
+# hibák generálása minden ágensre külön
+hibak = np.random.rand(n) < mu
+
+# ahol van hiba, ott megfordul a véleményt
+uj_velemenyek[hibak] = 1 - uj_velemenyek[hibak]
+
+# frissítjük a donor reputációját minden ágens számára
+reputation[:, donoridx] = uj_velemenyek
+
+```
+

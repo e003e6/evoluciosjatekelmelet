@@ -9,7 +9,7 @@
 // ------------- constanses -------------
 
 const int N = 100;
-const int GENERATION = 20;
+const int GENERATION = 1000;
 const int ROUND = 10;
 
 // public norm : 0=good, 1=bad
@@ -107,7 +107,6 @@ double average_per_round(double* payoff) {
 	return (total);
 }
 
-
 // shifting the minimum payoff to zero
 void minimum_to_zero(double* payoff) {
 	int n;
@@ -121,7 +120,6 @@ void minimum_to_zero(double* payoff) {
 
 	for (n=0; n<N; n++) payoff[n] -= min;
 }
-
 
 // generating a cummulative distribution function (cdf)
 void payoff_to_cdf(double* payoff) {
@@ -161,7 +159,6 @@ int main(void) {
 	int *public_reputation;     // public_reputation[n] = player n’s public reputation
 	int **reputation;           // reputation[m][n] = player n’s reputation in the eyes of m
 
-
 	// for donor-recipient matching
 	int *stack;
 	int *donor;                 // donor[pair]: the donor in #pair
@@ -171,13 +168,10 @@ int main(void) {
 	int **old_strategy;
 	int ***old_norm;
 	
-
 	// seed for a random variable
 	srand((unsigned)time(NULL));
 
-
 	// dynamic memory allocation
-
 	payoff = new double [N];
 	strategy = new int* [N]; 
 	old_strategy = new int* [N];
@@ -199,16 +193,15 @@ int main(void) {
 	parent = new int[N];
 
 
-
 	// ******** initialization of variables (for a whole simulation) ********
 
 	for(n=0; n<N; n++) {
 		for(j=0; j<2; j++) {
 			// initialization of strategy[n][j]: 0=cooperation, 1=defection; 2=punishment
-			if (n<MAJOR_STRATEGY_NUMBER) {     // for major strategy
+			if (n<MAJOR_STRATEGY_NUMBER) {     // az első 80 ágens megkapja a fő startágiát
 				if(j==0) strategy[n][j] = MAJOR_STRATEGY_G;
 				if(j==1) strategy[n][j] = MAJOR_STRATEGY_B;
-			} else strategy[n][j] = rand() %3;       // strategy is assigned randomly to the others
+			} else strategy[n][j] = rand() %3;       // a maradék 20 véletlenszerűt kap
 		} 
 	}
 
@@ -308,7 +301,6 @@ int main(void) {
 				// error in recalling recipient’s reputation
 				if ( (double) rand()/RAND_MAX<E_REP) { // if error occurs
 					donor_action = strategy[donor[pair]][1-reputation[donor[pair]][recipient[pair]]];
-
 				} else {    // if error does not occur
 					donor_action=strategy[donor[pair]][reputation[donor[pair]][recipient[pair]]];
 				}
@@ -345,7 +337,7 @@ int main(void) {
 
 
 			// ***** communication round *****
-
+			
 			for (j=0; j<N*COMMUNICATION; j++) {
 				l = rand()%N;
 				m = rand()%N;
@@ -361,11 +353,11 @@ int main(void) {
 				}
 			} 
 			
+			
 		} 
 		//end of one step
 
 		average_payoff += average_per_round(payoff);
-
 
 		// displaying C% and average payoff per generation
 
@@ -404,17 +396,15 @@ int main(void) {
 
 		if (INITIAL_CORRELATION==0) {   // without initial correlation
 			for (m=0; m<N; m++) {
-				// initialization of reputation[m][n] (how m thinks n): 0=good, 1=bad
+				// initialization of reputation[m][n] (how m thinks n)
 				if ( (double) rand()/RAND_MAX<=INITIAL_GOOD) reputation[m][n] = 0;
 				else reputation[m][n] = 1;
 			} 
 		}
 
 		if (INITIAL_CORRELATION==1) {  // with initial correlation
-		
-			// initialization of reputation[m][n] (how m thinks n): 0=good, 1=bad
+			// initialization of reputation[m][n] (how m thinks n)
 			if ( (double) rand()/RAND_MAX<=INITIAL_GOOD) {
-
 				for(m=0; m<N; m++) reputation[m][n]=0;
 			} else {
 				for(m=0; m<N; m++) reputation[m][n]=1;
