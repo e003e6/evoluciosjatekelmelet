@@ -1,8 +1,26 @@
-## v2.1
+**A modellek deomói a `root/python/pythontesztek.ipynb` fálban tatlálhatóak!**
 
-- Modell 1 átdolgozása: gyorsabb Python futás (csak Numpy és Matplotlib csomagok használatával)
+### v2.1
 
-- Szimulációs leírás (lásd lentebb)
+- Szimulációs leírás hozzáadása (lásd lentebb). A teles szimulációra kiterjedő leírás minden részlettel (folyamtban...)
+
+- Modell 1 (`MODE=1`) átdolgozása: gyorsabb Python futás (csak Numpy és Matplotlib csomagok használatával)
+
+- Modell 2 (`MODE=2`) megvalósítása (csak Numpy és Matplotlib csomagok használatával)
+
+### v2.2 célok
+
+- Szimulációs leírás befejezése
+
+- A modellek teljes vektoralizálása. Csak a generáció for loop marad meg minden más vektoros, lineáris algebrai számítás (C-hez közeli futási teljesítmény kizárólag Numpy csomag használatával)
+
+- A modellek összevonása egy Python osztályba
+  
+  - Moduláris felépítés a különböző eljárások könnyű implementálásához (például összetettebb hibajavító folyamatokat hozzáadása)
+  
+  - Könnyű továbbfejlesztés (saját elképzelések szerint)
+
+- A modellek végső ellenőrzése C++ kód alapján rögzített véletlenértékek segítségével
 
 ----
 
@@ -51,6 +69,8 @@ Ha a donor például `CP` cselekévési szabállyal rendelkezik akkor jó hírne
 ### Social norms
 
 A recipiensek hírnevének frissítésére társadalmi normát használunk. A populáció összes játékosa azonos normát oszt (ez a populáció tulajdonsága, nem az ágensé).
+
+norma = mi számít jó vagy rossz viselkedésnek
 
 Egy példa a társadalmi normára (xy norm):
 
@@ -148,11 +168,13 @@ loop gen:
 
 #### Wright–Fisher process
 
-...
+*implementálás folyamatban...*
 
 #### CDF payoff
 
-...
+*Nagyon kreatív módja az egyének súlyozott kiválasztásának véletlen alapján. Megéri kifejteni a módszert...*
+
+<br>
 
 ## Mode2
 
@@ -192,8 +214,16 @@ A kommunikációra a lépések végén kerül sor.
 loop N*COMMUNICATION:
     - l, m, n = rand
 
-    - COM_MODE
+    - if COM_MODE=1:
+        - l átveszi m véleményét n-ről
+    - if COM_MODE=2:
+        - l átveszi m véleményét n-ről, 
+          ha n-et jó hírvevű játékosnak tartja
 ```
+
+Az eredeti c++ kódban előfordulhat az, hogy l, m, n egyező érték, tehát pl. a hallgató az informátor, vagy az hallgató a tárgyszemély, vagy mindhárom akár ugyan az.
+
+<br>
 
 ## Python megvalósítás
 
@@ -235,6 +265,12 @@ tn = ['G', 'G',
 
 A megvalósított modellben nagy szerepet fordítunk a vektorosított megoldásoknak. 
 
+<br>
+
+## Vektroalizálás
+
+**Python megvalósítás:**
+
 ```python
 for agens in range(n):
     rec_hirnev_f = reputation[agens][recipientidx]          # MODE2: rec hírneve a megfigyelő ágens szerint
@@ -248,6 +284,8 @@ for agens in range(n):
 ```
 
 *(A minta kód `uj_velemeny` valtozója csak a könyebb érthetőség miatt létezik)*
+
+**Vektros megvalósítás:**
 
 ```python
 # minden ágens véleménye a recipiensről egy listába
@@ -264,6 +302,6 @@ uj_velemenyek[hibak] = 1 - uj_velemenyek[hibak]
 
 # frissítjük a donor reputációját minden ágens számára
 reputation[:, donoridx] = uj_velemenyek
-
 ```
 
+*bef...*

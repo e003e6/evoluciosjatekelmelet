@@ -171,8 +171,14 @@ class Szimulacio:
 
                 # szülő kiválasztása payoff arányosan
                 min_to_zero = payoff - np.min(payoff)
-                cdf = np.cumsum(min_to_zero/np.sum(min_to_zero))
-                szulo = np.searchsorted(cdf, np.random.rand())
+                # ha minden payoff érték azonos, akkor a min_to_zero minden eleme 0 lesz, nullával nem lehet osztani
+                total = np.sum(min_to_zero)
+
+                if total == 0:
+                    szulo = np.random.randint(0, n)  # uniform véletlen választás
+                else:
+                    cdf = np.cumsum(min_to_zero / total)
+                    szulo = np.searchsorted(cdf, np.random.rand())
 
                 # mutáció
                 if np.random.rand() > epsilon:
@@ -190,7 +196,8 @@ class Szimulacio:
                     reputation[:, dying] = 0 if np.random.rand() < init_good else 1
 
             stat = (gen, freakvenciak, average_payoff/n, (times_of_cooperation/(rounds*n*n/2)))
-            print(stat)
+            #print(stat)
+            print(f"\rSzimuláció: {((gen+1)/generations)*100:.1f}%", end="", flush=True)
             self.statisztikak.append(stat)
 
 
@@ -223,7 +230,9 @@ class Szimulacio:
         ax1.set_ylim((0, 1))
 
         ax2.set_xlim((0, nlist[-1]))
-        ax2.set_ylim((rangee[0], rangee[1]))
+
+        if rangee:
+            ax2.set_ylim((rangee[0], rangee[1]))
 
         ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         plt.show()
@@ -235,6 +244,6 @@ if __name__ == "__main__":
           'B', 'G',
           'B', 'B']
 
-    sz = Szimulacio(tn, generations=1000)
+    sz = Szimulacio(tn, generations=20)
     sz.run()
     sz.plot()
