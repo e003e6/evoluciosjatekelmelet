@@ -1,8 +1,8 @@
-**A modellek deomói a `root/python/pythontesztek.ipynb` fálban tatlálhatóak!**
+**A modellek demói a `./jupyter/pythontesztek.ipynb` fálban tatlálhatóak!**
 
 ### v2.1
 
-- Szimulációs leírás hozzáadása (lásd lentebb). A teles szimulációra kiterjedő leírás minden részlettel (folyamtban...)
+- Szimulációs leírás hozzáadása (lásd lentebb). A teles szimulációra kiterjedő leírás minden részlettel (folyamatban...)
 
 - Modell 1 (`MODE=1`) átdolgozása: gyorsabb Python futás (csak Numpy és Matplotlib csomagok használatával)
 
